@@ -13,8 +13,8 @@ const NavBar: React.FC = () => {
       <div className="container mx-auto px-4 py-5">
         <nav className="flex justify-between items-center">
           <div className="flex items-center">
-            <Link href="/">
-              <a className="text-white font-bold text-2xl">TranscribeAI</a>
+            <Link href="/" className="text-white font-bold text-2xl">
+              TranscribeAI
             </Link>
           </div>
           

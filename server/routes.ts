@@ -5,7 +5,7 @@ import axios from "axios";
 import * as cheerio from 'cheerio';
 
 // Import the 'he' module for HTML entity decoding
-import * as he from 'he';
+import he from 'he';
 
 // Function to extract YouTube transcript using a web scraping approach
 async function extractYouTubeTranscript(videoId: string, language = 'auto'): Promise<any> {
@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let videoTitle = "YouTube Video";
       const titleMatch = html.match(/<title>([^<]*)<\/title>/);
       if (titleMatch && titleMatch[1]) {
-        videoTitle = titleMatch[1].replace(" - YouTube", "");
+        videoTitle = he.decode(titleMatch[1].replace(" - YouTube", ""));
       }
       
       // Generate a simple fallback response
