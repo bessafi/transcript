@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 231 83% 60%;  /* #4361EE */
+  --primary-foreground: 211 100% 99%;
+  --secondary: 262 88% 33%;  /* #3A0CA3 */
+  --secondary-foreground: 0 0% 98%;
+  --accent: 333 99% 54%;  /* #F72585 */
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 231 83% 60%;
+  --radius: 0.5rem;
+  --chart-1: 231 83% 60%;
+  --chart-2: 262 88% 33%;
+  --chart-3: 333 99% 54%;
+  --chart-4: 148 62% 47%;
+  --chart-5: 30.9 97.7% 57.5%;
+  --success: 158 64% 40%;
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 231 83% 60%;  /* #4361EE */
+  --primary-foreground: 211 100% 99%;
+  --secondary: 262 88% 33%;  /* #3A0CA3 */
+  --secondary-foreground: 0 0% 98%;
+  --accent: 333 99% 54%;  /* #F72585 */
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 231 83% 60%;
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-foreground;
+  }
+}
+
+@layer components {
+  .gradient-bg {
+    @apply bg-gradient-to-r from-primary to-secondary;
+  }
+  
+  /* Custom scrollbar for transcript */
+  .transcript-container::-webkit-scrollbar {
+    width: 8px;
+  }
+  .transcript-container::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+  }
+  .transcript-container::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+  }
+  .transcript-container::-webkit-scrollbar-thumb:hover {
+    @apply bg-secondary;
+  }
+}
