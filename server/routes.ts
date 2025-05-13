@@ -4,6 +4,26 @@ import { storage } from "./storage";
 import axios from "axios";
 import * as cheerio from 'cheerio';
 
+// Function to decode HTML entities like &amp; &quot; &#39; etc.
+function decodeHTMLEntities(encodedString: string): string {
+  const translateRegex = /&(nbsp|amp|quot|lt|gt|#39);/g;
+  const translate: Record<string, string> = {
+    'nbsp': ' ',
+    'amp': '&',
+    'quot': '"',
+    'lt': '<',
+    'gt': '>',
+    '#39': "'"
+  };
+  
+  return encodedString
+    .replace(translateRegex, (match, entity) => translate[entity])
+    .replace(/&#(\d+);/gi, (match, numStr) => {
+      const num = parseInt(numStr, 10);
+      return String.fromCharCode(num);
+    });
+}
+
 // Function to extract YouTube transcript using a web scraping approach
 async function extractYouTubeTranscript(videoId: string, language = 'auto'): Promise<any> {
   try {
@@ -43,7 +63,7 @@ async function extractYouTubeTranscript(videoId: string, language = 'auto'): Pro
           $('text').each((i, elem) => {
             const start = parseFloat($(elem).attr('start') || '0');
             const duration = parseFloat($(elem).attr('dur') || '0');
-            const text = $(elem).text().trim();
+            const text = decodeHTMLEntities($(elem).text().trim());
             
             if (text) {
               texts.push(text);
@@ -98,7 +118,7 @@ async function extractYouTubeTranscript(videoId: string, language = 'auto'): Pro
             $('text').each((i, elem) => {
               const start = parseFloat($(elem).attr('start') || '0');
               const duration = parseFloat($(elem).attr('dur') || '0');
-              const text = $(elem).text().trim();
+              const text = decodeHTMLEntities($(elem).text().trim());
               
               if (text) {
                 texts.push(text);

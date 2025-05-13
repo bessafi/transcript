@@ -6,6 +6,8 @@ interface TranscriptionResult {
     text: string;
   }>;
   language: string;
+  isFallback?: boolean;
+  videoTitle?: string;
 }
 
 // YouTube Transcript API - This uses the YouTube's own captions
