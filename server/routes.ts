@@ -101,7 +101,7 @@ async function extractYouTubeTranscript(videoId: string, language = 'auto'): Pro
             $('text').each((i, elem) => {
               const start = parseFloat($(elem).attr('start') || '0');
               const duration = parseFloat($(elem).attr('dur') || '0');
-              const text = decodeHTMLEntities($(elem).text().trim());
+              const text = he.decode($(elem).text().trim());
               
               if (text) {
                 texts.push(text);
