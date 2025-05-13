@@ -468,20 +468,47 @@ const TranscriptionTool: React.FC = () => {
               
               {displayMode === 'paragraphs' && (
                 <div className="space-y-4">
-                  {transcriptionResult.text.split('\n\n').map((paragraph, index) => (
-                    <p key={index} className="text-gray-700">{paragraph}</p>
-                  ))}
+                  {(transcriptionResult.text || "")
+                    .split(/(?:\.|\!|\?)\s+/) // Split text by sentence endings
+                    .filter(sentence => sentence.trim().length > 0)
+                    .reduce((acc, sentence, i) => {
+                      // Group sentences into paragraphs (roughly 2-4 sentences per paragraph)
+                      const paragraphIndex = Math.floor(i / 3);
+                      acc[paragraphIndex] = (acc[paragraphIndex] || "") + sentence + ". ";
+                      return acc;
+                    }, [])
+                    .map((paragraph, index) => (
+                      <p key={index} className="text-gray-700">{paragraph}</p>
+                    ))
+                  }
                 </div>
               )}
               
               {displayMode === 'timestamps' && (
                 <div className="space-y-4">
-                  {transcriptionResult.timestamps?.map((item, index) => (
-                    <p key={index}>
-                      <span className="text-primary font-medium">[{Math.floor(item.start / 60)}:{(item.start % 60).toString().padStart(2, '0')}]</span> 
-                      <span className="text-gray-700"> {item.text}</span>
-                    </p>
-                  ))}
+                  {transcriptionResult.timestamps && transcriptionResult.timestamps.length > 0 ? (
+                    transcriptionResult.timestamps.map((item, index) => (
+                      <p key={index}>
+                        <span className="text-primary font-medium">[{Math.floor(item.start / 60)}:{(item.start % 60).toString().padStart(2, '0')}]</span> 
+                        <span className="text-gray-700"> {item.text}</span>
+                      </p>
+                    ))
+                  ) : (
+                    // Create artificial timestamps if none are available
+                    transcriptionResult.text.split(/(?:\.|\!|\?)\s+/)
+                      .filter(sentence => sentence.trim().length > 0)
+                      .map((sentence, index) => {
+                        // Generate artificial timestamps based on position in text
+                        // Assuming ~3 seconds per sentence
+                        const startTime = index * 3;
+                        return (
+                          <p key={index}>
+                            <span className="text-primary font-medium">[{Math.floor(startTime / 60)}:{(startTime % 60).toString().padStart(2, '0')}]</span> 
+                            <span className="text-gray-700"> {sentence}</span>
+                          </p>
+                        );
+                      })
+                  )}
                 </div>
               )}
             </div>
