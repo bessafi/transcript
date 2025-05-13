@@ -103,11 +103,20 @@ const TranscriptionTool: React.FC = () => {
       setTranscriptionResult(result);
       setShowResult(true);
       
-      toast({
-        title: "Success",
-        description: "Transcription completed successfully",
-        variant: "default"
-      });
+      // Check if it's a fallback response (no captions available)
+      if (result.isFallback) {
+        toast({
+          title: "Transcription Notice",
+          description: "This video doesn't have captions available. We're showing limited information.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Transcription completed successfully",
+          variant: "default"
+        });
+      }
     } catch (error) {
       toast({
         title: "Transcription Failed",

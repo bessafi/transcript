@@ -15,6 +15,19 @@ async function getYouTubeTranscript(videoId: string, language: string = 'auto'):
     const response = await fetch(`/api/youtube-transcript?videoId=${videoId}&language=${language}`);
     
     if (!response.ok) {
+      // If the main transcript API fails, try the fallback
+      if (response.status === 500) {
+        console.log("Transcript API failed, trying fallback method...");
+        const fallbackResponse = await fetch(`/api/fallback-transcript?videoId=${videoId}`);
+        
+        if (!fallbackResponse.ok) {
+          throw new Error(`Failed to fetch transcript (both methods): ${fallbackResponse.statusText}`);
+        }
+        
+        const fallbackData = await fallbackResponse.json();
+        return fallbackData;
+      }
+      
       throw new Error(`Failed to fetch transcript: ${response.statusText}`);
     }
     
@@ -130,11 +143,31 @@ async function getVideoMetadata(url: string) {
       const videoId = extractYouTubeVideoId(url);
       if (!videoId) throw new Error('Invalid YouTube URL');
       
+      try {
+        // Try to get the actual video title
+        const response = await fetch(`/api/fallback-transcript?videoId=${videoId}`);
+        if (response.ok) {
+          const data = await response.json();
+          const title = data.videoTitle || 'YouTube Video';
+          
+          return {
+            platform,
+            videoId,
+            thumbnail: `https://img.youtube.com/vi/${videoId}/0.jpg`,
+            title: title,
+            url
+          };
+        }
+      } catch (error) {
+        console.warn("Failed to get video title, using default", error);
+      }
+      
+      // Fallback if the above fails
       return {
         platform,
         videoId,
         thumbnail: `https://img.youtube.com/vi/${videoId}/0.jpg`,
-        title: 'YouTube Video', // In a real implementation, we'd fetch this from the API
+        title: 'YouTube Video',
         url
       };
     }

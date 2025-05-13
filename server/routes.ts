@@ -2,6 +2,134 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import axios from "axios";
+import * as cheerio from 'cheerio';
+
+// Function to extract YouTube transcript using a web scraping approach
+async function extractYouTubeTranscript(videoId: string, language = 'auto'): Promise<any> {
+  try {
+    // Step 1: Get the video page - this helps us get necessary tokens
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const response = await axios.get(videoUrl);
+    const html = response.data;
+
+    // Find the transcript data in the page's JavaScript
+    let transcriptData;
+    
+    // Two approaches to try to extract transcript
+    // First approach: Try to get captions data from page content
+    try {
+      // Match the captions track data
+      const captionsMatch = html.match(/"captionTracks":\s*(\[.*?\])/);
+      if (captionsMatch && captionsMatch[1]) {
+        const captionTracks = JSON.parse(captionsMatch[1].replace(/\\"/g, '"'));
+        
+        // Find the appropriate caption track (prefer en if available)
+        const track = captionTracks.find((track: any) => 
+          language === 'auto' ? 
+            (track.languageCode === 'en' || track.vssId.includes('.en')) : 
+            track.languageCode === language
+        ) || captionTracks[0]; // fallback to first available
+        
+        if (track && track.baseUrl) {
+          // Get the transcript XML
+          const transcriptResponse = await axios.get(track.baseUrl);
+          const xml = transcriptResponse.data;
+          
+          // Parse XML to extract transcript text with timestamps
+          const $ = cheerio.load(xml, { xmlMode: true });
+          const texts: any[] = [];
+          const timestamps: any[] = [];
+          
+          $('text').each((i, elem) => {
+            const start = parseFloat($(elem).attr('start') || '0');
+            const duration = parseFloat($(elem).attr('dur') || '0');
+            const text = $(elem).text().trim();
+            
+            if (text) {
+              texts.push(text);
+              timestamps.push({
+                start,
+                end: start + duration,
+                text
+              });
+            }
+          });
+          
+          return {
+            text: texts.join(' '),
+            timestamps,
+            language: track.languageCode || 'en'
+          };
+        }
+      }
+    } catch (e: any) {
+      console.log("First transcript extraction approach failed:", e.message);
+    }
+    
+    // Second approach: Try to extract from player response data
+    try {
+      const ytInitialPlayerMatch = html.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
+      if (ytInitialPlayerMatch && ytInitialPlayerMatch[1]) {
+        const playerData = JSON.parse(ytInitialPlayerMatch[1]);
+        
+        if (playerData.captions && 
+            playerData.captions.playerCaptionsTracklistRenderer && 
+            playerData.captions.playerCaptionsTracklistRenderer.captionTracks) {
+          
+          const captionTracks = playerData.captions.playerCaptionsTracklistRenderer.captionTracks;
+          
+          // Find the appropriate caption track
+          const track = captionTracks.find((track: any) => 
+            language === 'auto' ? 
+              (track.languageCode === 'en' || track.vssId.includes('.en')) : 
+              track.languageCode === language
+          ) || captionTracks[0]; // fallback to first available
+          
+          if (track && track.baseUrl) {
+            // Get the transcript XML
+            const transcriptResponse = await axios.get(track.baseUrl);
+            const xml = transcriptResponse.data;
+            
+            // Parse XML to extract transcript text with timestamps
+            const $ = cheerio.load(xml, { xmlMode: true });
+            const texts: any[] = [];
+            const timestamps: any[] = [];
+            
+            $('text').each((i, elem) => {
+              const start = parseFloat($(elem).attr('start') || '0');
+              const duration = parseFloat($(elem).attr('dur') || '0');
+              const text = $(elem).text().trim();
+              
+              if (text) {
+                texts.push(text);
+                timestamps.push({
+                  start,
+                  end: start + duration,
+                  text
+                });
+              }
+            });
+            
+            return {
+              text: texts.join(' '),
+              timestamps,
+              language: track.languageCode || 'en'
+            };
+          }
+        }
+      }
+    } catch (e: any) {
+      console.log("Second transcript extraction approach failed:", e.message);
+    }
+    
+    // If we reach here, both methods failed or no transcripts available
+    throw new Error("Unable to find transcript for this video. The video might not have captions available.");
+    
+  } catch (error) {
+    console.error("Error extracting YouTube transcript:", error);
+    throw error;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // YouTube Transcript API route
@@ -15,53 +143,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Simulated response since in a real implementation we would call 
-      // either a YouTube API or use a library like youtube-transcript
-      // This is a simplified implementation for demo purposes
+      console.log(`Processing transcript request for video ID: ${videoId}, language: ${language}`);
       
-      const paragraphs = [
-        "Hello everyone, and welcome to this session on how to build a successful startup. My name is Sarah Johnson, and I'm excited to share some insights with you today.",
-        "Before we dive in, I want to emphasize that building a startup is both challenging and rewarding. It requires dedication, resilience, and a clear vision.",
-        "First, let's talk about identifying a problem worth solving. Every successful startup begins with recognizing a genuine need in the market. You should be able to clearly articulate the problem you're addressing.",
-        "Ask yourself: Is this problem significant enough that people will pay for a solution? Is it something that affects many people or businesses? The more pressing the problem, the better positioned your startup will be.",
-        "Next, develop a unique value proposition. What makes your solution different and better than existing alternatives? This could be based on technology, approach, pricing, or user experience.",
-        "Remember, you don't always need to reinvent the wheel. Sometimes, significant improvements to existing solutions can create tremendous value.",
-        "The third key element is building the right team. Surround yourself with people who complement your skills and share your passion for solving the problem.",
-        "Look for team members who are not only talented but also adaptable and resilient. The startup journey is unpredictable, and you need people who can navigate uncertainty.",
-        "Now, let's discuss customer validation. Before investing heavily in development, test your assumptions with real potential customers."
-      ];
-      
-      // Create a full text and timestamps for the transcript
-      const fullText = paragraphs.join("\n\n");
-      const timestamps = [];
-      
-      let currentTime = 0;
-      for (const paragraph of paragraphs) {
-        // Approximate 5 seconds per sentence
-        const sentences = paragraph.split('. ');
-        for (const sentence of sentences) {
-          if (sentence.trim()) {
-            const duration = sentence.length / 20 * 5; // Very rough approximation
-            timestamps.push({
-              start: currentTime,
-              end: currentTime + duration,
-              text: sentence.trim() + (sentence.endsWith('.') ? '' : '.')
-            });
-            currentTime += duration;
-          }
-        }
-      }
-      
-      res.json({
-        text: fullText,
-        timestamps,
-        language: 'en'
-      });
+      // Use the actual YouTube transcript extraction function
+      const transcriptData = await extractYouTubeTranscript(videoId as string, language as string);
+      res.json(transcriptData);
       
     } catch (error) {
       console.error("YouTube transcript error:", error);
       res.status(500).json({ 
         error: "Failed to get transcript", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
+  // Fallback route for videos without transcripts
+  app.get("/api/fallback-transcript", async (req, res) => {
+    try {
+      const { videoId } = req.query;
+      
+      if (!videoId) {
+        return res.status(400).json({ error: "Missing videoId parameter" });
+      }
+      
+      // Get the video title at least
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const response = await axios.get(videoUrl);
+      const html = response.data;
+      
+      let videoTitle = "YouTube Video";
+      const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+      if (titleMatch && titleMatch[1]) {
+        videoTitle = titleMatch[1].replace(" - YouTube", "");
+      }
+      
+      // Generate a simple fallback response
+      const fallbackText = `This video titled "${videoTitle}" doesn't have available captions. ` +
+                           `We're unable to provide a transcript for this content.`;
+      
+      res.json({
+        text: fallbackText,
+        timestamps: [{ start: 0, end: 5, text: fallbackText }],
+        language: 'en',
+        isFallback: true,
+        videoTitle: videoTitle
+      });
+      
+    } catch (error) {
+      console.error("Fallback transcript error:", error);
+      res.status(500).json({ 
+        error: "Failed to get video information", 
         details: error instanceof Error ? error.message : "Unknown error" 
       });
     }
