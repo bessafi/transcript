@@ -15,6 +15,7 @@ async function getYouTubeTranscript(videoId: string, language: string = 'auto'):
   try {
     // Fetching from our backend proxy to YouTube's transcript API
     const response = await fetch(`/api/youtube-transcript?videoId=${videoId}&language=${language}`);
+    console.log("YouTube transcript API response status:", response.status);
     
     if (!response.ok) {
       // If the main transcript API fails, try the fallback
@@ -27,6 +28,7 @@ async function getYouTubeTranscript(videoId: string, language: string = 'auto'):
         }
         
         const fallbackData = await fallbackResponse.json();
+        console.log("Fallback response data:", fallbackData);
         return fallbackData;
       }
       
@@ -34,6 +36,20 @@ async function getYouTubeTranscript(videoId: string, language: string = 'auto'):
     }
     
     const data = await response.json();
+    console.log("YouTube transcript API data:", data);
+    
+    // If the response was ok but the text is empty, try the fallback
+    if (data && (!data.text || data.text.trim() === '')) {
+      console.log("Transcript data is empty, trying fallback method...");
+      const fallbackResponse = await fetch(`/api/fallback-transcript?videoId=${videoId}`);
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        console.log("Fallback response data:", fallbackData);
+        return fallbackData;
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error("Error getting YouTube transcript:", error);

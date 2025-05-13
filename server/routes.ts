@@ -58,6 +58,9 @@ async function extractYouTubeTranscript(videoId: string, language = 'auto'): Pro
             }
           });
           
+          // Log text for debugging
+          console.log("Extracted texts:", texts);
+          
           return {
             text: texts.join(' '),
             timestamps,
@@ -112,6 +115,9 @@ async function extractYouTubeTranscript(videoId: string, language = 'auto'): Pro
                 });
               }
             });
+            
+            // Log text for debugging
+            console.log("Extracted texts (second approach):", texts);
             
             return {
               text: texts.join(' '),
