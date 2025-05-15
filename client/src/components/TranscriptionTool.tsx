@@ -467,18 +467,24 @@ const TranscriptionTool: React.FC = () => {
               )}
               
               {displayMode === 'paragraphs' && (
-                <div className="space-y-4">
-                  {(transcriptionResult.text || "")
-                    .split(/(?:\.|\!|\?)\s+/) // Split text by sentence endings
+                <div className="space-y-6">
+                  {transcriptionResult.text
+                    .split(/[.!?]+/)
                     .filter(sentence => sentence.trim().length > 0)
-                    .reduce((acc, sentence, i) => {
-                      // Group sentences into paragraphs (roughly 2-4 sentences per paragraph)
+                    .reduce((paragraphs, sentence, i) => {
                       const paragraphIndex = Math.floor(i / 3);
-                      acc[paragraphIndex] = (acc[paragraphIndex] || "") + sentence + ". ";
-                      return acc;
-                    }, [])
-                    .map((paragraph, index) => (
-                      <p key={index} className="text-gray-700">{paragraph}</p>
+                      if (!paragraphs[paragraphIndex]) {
+                        paragraphs[paragraphIndex] = [];
+                      }
+                      paragraphs[paragraphIndex].push(sentence.trim());
+                      return paragraphs;
+                    }, [] as string[][])
+                    .map((sentences, index) => (
+                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-gray-700 leading-relaxed">
+                          {sentences.join('. ') + '.'}
+                        </p>
+                      </div>
                     ))
                   }
                 </div>
